@@ -1,9 +1,11 @@
 package main
+
 // got it from https://pocketgophers.com/limit-concurrent-use/
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -11,7 +13,8 @@ func main() {
 
 	var wg sync.WaitGroup
 	semaphore := make(chan struct{}, 3) // we have buffer size 3. And all other will wait.
-	for i := 0; i < 9; i++ {
+	out := make(map[int]string)
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 
 		go func(i int) {
@@ -22,7 +25,13 @@ func main() {
 				<-semaphore // Unlock
 			}()
 
-			time.Sleep(time.Second)
+			resp, err := http.Get("https://google.com")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			defer resp.Body.Close()
+			out[i] = string(resp.Body)
 			log.Println(i)
 		}(i)
 	}
